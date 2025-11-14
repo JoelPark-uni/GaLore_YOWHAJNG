@@ -709,7 +709,20 @@ def main():
         else:
             active_dataloader = train_dataloader
         for step, batch in enumerate(active_dataloader):
-
+            # Branch: if iter % project_gap == 0 steps 
+            # 1. Random Sampling 1 sample
+            # x = Sample(batch)
+            
+            # 2. Loss & Gradient Calculation
+            # Loss = criterio(x, y)
+            # Loss.backward()
+            
+            # 3. Project Matrix Update
+            # optimizer.projecter.calculate_projections()
+            # Step calibraion(-1)
+            
+            # 4. Normal update
+            
             
             outputs = model(**batch)
             loss = outputs.loss

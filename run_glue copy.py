@@ -49,13 +49,6 @@ from transformers.utils.versions import require_version
 
 from galore_torch import GaLoreAdamW
 
-# >>> BEGIN: logging additions
-def _append_jsonl(path, record):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
-# >>> END: logging additions
-
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 # check_min_version("4.38.0.dev0")
 
@@ -249,58 +242,6 @@ def parse_args():
 
 def main():
     args = parse_args()
-    
-    # === add at top of file (imports 근처) ===
-    import re
-    from datetime import datetime
-    from pathlib import Path
-
-    def _slug(s: str) -> str:
-        s = str(s)
-        s = s.replace("/", "__")   # 허브 모델명 등 슬래시 처리
-        s = re.sub(r"[^a-zA-Z0-9._-]+", "-", s)
-        return s.strip("-")
-
-    # === inside main(), right after: args = parse_args() ===
-    # 자동 output_dir 생성 규칙: 모델/태스크/배치/acc/lr/seed/옵션들 + 타임스탬프
-    parts = [
-        _slug(Path(args.model_name_or_path).name),
-        f"task-{_slug(args.task_name) if args.task_name else 'custom'}",
-        f"bs{args.per_device_train_batch_size}",
-        f"acc{args.gradient_accumulation_steps}",
-        f"lr{args.learning_rate}",
-    ]
-    if args.seed is not None: parts.append(f"seed{args.seed}")
-    if args.enable_galore:
-        parts.append("galore")
-        parts.append(f"r{args.lora_r}")
-        parts.append(f"gap{args.update_proj_gap}")
-        parts.append(f"scale{args.galore_scale}")
-        parts.append(f"proj{_slug(args.proj_type)}")
-    if args.lora_all_modules: parts.append("loraAll")
-    if args.eval_llama: parts.append("llama")
-
-    run_name = "__".join(parts)
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-    # 사용자가 --output_dir를 주지 않았으면 runs/ 아래에 자동 생성
-    if not args.output_dir:
-        args.output_dir = os.path.join("runs", f"{run_name}__{ts}")
-    else:
-        # 사용자가 지정한 폴더 아래에 하이퍼파라미터 서브폴더를 붙이고 싶다면:
-        # args.output_dir = os.path.join(args.output_dir, f"{run_name}__{ts}")
-        # (위 한 줄을 원하면 주석 해제)
-        pass
-
-    # 충돌 방지: 이미 존재하고 resume가 아니라면 뒤에 숫자 suffix
-    base_out = args.output_dir
-    suffix = 1
-    while os.path.exists(args.output_dir) and not args.resume_from_checkpoint:
-        args.output_dir = f"{base_out}__{suffix}"
-        suffix += 1
-
-    
-    
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
     send_example_telemetry("run_glue_no_trainer", args)
@@ -547,22 +488,12 @@ def main():
         # Otherwise, `DataCollatorWithPadding` will apply dynamic padding for us (by padding to the maximum length of
         # the samples passed). When using mixed precision, we add `pad_to_multiple_of=8` to pad all tensors to multiple
         # of 8s, which will enable the use of Tensor Cores on NVIDIA hardware with compute capability >= 7.5 (Volta).
-        # data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if accelerator.use_fp16 else None))
-        mp = getattr(accelerator, "mixed_precision", "no")
-        data_collator = DataCollatorWithPadding(
-            tokenizer,
-            pad_to_multiple_of=(8 if str(mp).lower() in {"fp16", "bf16", "fp8"} else None),
-        )
+        data_collator = DataCollatorWithPadding(tokenizer, pad_to_multiple_of=(8 if accelerator.use_fp16 else None))
 
     train_dataloader = DataLoader(
         train_dataset, shuffle=True, collate_fn=data_collator, batch_size=args.per_device_train_batch_size
     )
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
-
-    # >>> BEGIN: logging additions (paths)
-    train_log_path = os.path.join(args.output_dir or ".", f"train_step_metrics_acc{args.gradient_accumulation_steps}_batch{args.per_device_train_batch_size}.jsonl")
-    eval_log_path  = os.path.join(args.output_dir or ".", f"eval_epoch_metrics_acc{args.gradient_accumulation_steps}_batch{args.per_device_train_batch_size}.jsonl")
-    # >>> END: logging additions (paths)
 
     # Optimizer
     # Split weights in two groups, one with weight decay and the other not.
@@ -664,9 +595,6 @@ def main():
     progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
     completed_steps = 0
     starting_epoch = 0
-    # >>> BEGIN: logging additions
-    loss_accum = 0.0  # grad accumulation 동안 스케일된 loss를 누적
-    # >>> END: logging additions
     # Potentially load in the weights and states from a previous save
     if args.resume_from_checkpoint:
         if args.resume_from_checkpoint is not None or args.resume_from_checkpoint != "":
@@ -710,7 +638,6 @@ def main():
             active_dataloader = train_dataloader
         for step, batch in enumerate(active_dataloader):
 
-            
             outputs = model(**batch)
             loss = outputs.loss
             # We keep track of the loss at each epoch
@@ -718,34 +645,12 @@ def main():
                 total_loss += loss.detach().float()
             loss = loss / args.gradient_accumulation_steps
             accelerator.backward(loss)
-            
-            # >>> BEGIN: logging additions (accumulate scaled loss)
-            loss_accum += loss.detach().float()
-            # >>> END: logging additions
-            
             if step % args.gradient_accumulation_steps == 0 or step == len(train_dataloader) - 1:
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
                 progress_bar.update(1)
                 completed_steps += 1
-                
-                # >>> BEGIN: logging additions (write per training step)
-                # 이 시점의 loss_accum: grad_accumulation 구간 평균(스케일된 손실의 합)
-                # 스케일된 손실 합이므로 '스텝 평균'으로 남기고 싶으면 .item() 그대로 사용
-                if accelerator.is_local_main_process:
-                    # 에폭의 연속 좌표 (대략적인 위치)
-                    epoch_progress = epoch + (step + 1) / len(active_dataloader)
-                    _append_jsonl(
-                        train_log_path,
-                        {
-                            "step": int(completed_steps),
-                            "epoch": float(epoch_progress),
-                            "train_loss": float(loss_accum.item()),
-                        },
-                    )
-                loss_accum = 0.0
-                # >>> END: logging additions
 
             if isinstance(checkpointing_steps, int):
                 if completed_steps % checkpointing_steps == 0:
@@ -759,18 +664,9 @@ def main():
 
         model.eval()
         samples_seen = 0
-        # >>> BEGIN: logging additions
-        eval_loss_total = 0.0
-        # >>> END: logging additions
         for step, batch in enumerate(eval_dataloader):
             with torch.no_grad():
                 outputs = model(**batch)
-            
-            # >>> BEGIN: logging additions (collect eval loss)
-            # classification/regression 공통으로 model(**batch)엔 loss가 있음
-            eval_loss_total += float(outputs.loss.detach().item())
-            # >>> END: logging additions
-            
             predictions = outputs.logits.argmax(dim=-1) if not is_regression else outputs.logits.squeeze()
             predictions, references = accelerator.gather((predictions, batch["labels"]))
             # If we are in a multiprocess environment, the last batch has duplicates
@@ -787,20 +683,6 @@ def main():
 
         eval_metric = metric.compute()
         logger.info(f"epoch {epoch}: {eval_metric}")
-        
-        # >>> BEGIN: logging additions (write per epoch eval)
-        if accelerator.is_local_main_process:
-            eval_loss_avg = eval_loss_total / len(eval_dataloader)
-            record = {
-                "epoch": int(epoch),
-                "step": int(completed_steps),
-                "eval_loss": float(eval_loss_avg),
-            }
-            # 메트릭 키를 평평하게 합치기
-            for k, v in eval_metric.items():
-                record[f"eval_{k}"] = float(v) if isinstance(v, (int, float)) else v
-            _append_jsonl(eval_log_path, record)
-        # >>> END: logging additions
 
         if args.with_tracking:
             accelerator.log(
