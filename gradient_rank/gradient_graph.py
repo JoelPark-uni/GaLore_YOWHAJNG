@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # ----------------------------------------------------
 # 설정
 # ----------------------------------------------------
-STABLERANK_SAVE_DIR = "./gradient_rank/stable_rank"
-PLOT_SAVE_DIR = "./gradient_rank/plots3"
+STABLERANK_SAVE_DIR = "./stable_rank"
+PLOT_SAVE_DIR = "./plots3"
 os.makedirs(PLOT_SAVE_DIR, exist_ok=True)
 
 # 앞에서 사용했던 모델 id들

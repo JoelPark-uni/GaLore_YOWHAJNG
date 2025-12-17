@@ -27,17 +27,17 @@ os.makedirs(STABLERANK_SAVE_DIR, exist_ok=True)
 # 실험할 모델들: (모델 경로(or 이름), id 숫자)
 MODEL_SPECS = [
     ("roberta-base", 0),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__1", 1),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__2", 2),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__3", 3),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__4", 4),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__5", 5),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__6", 6),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__43", 43),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__55", 55),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__56", 56),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__58", 58),
-    ("./results/ft/roberta_base_mrpc_T500/mrpc__62", 62),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__1", 1),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__2", 2),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__3", 3),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__4", 4),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__5", 5),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__6", 6),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__43", 43),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__55", 55),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__56", 56),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__58", 58),
+    ("../results/ft/roberta_base_mrpc_T500/mrpc__62", 62),
 ]
 
 
