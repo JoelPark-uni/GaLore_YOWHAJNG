@@ -227,6 +227,8 @@ def parse_args():
     parser.add_argument("--eval_llama", action="store_true", help="Whether or not to evaluate llama model.")
     # low_rank_method
     parser.add_argument("--low_rank_method", type=str, default=None, help="low rank method for wandb sweep")
+
+    parser.add_argument("--enable_single_projection", action="store_true", help="Whether or not to use single projection for GaLore.")
     
     args = parser.parse_args()
     
@@ -709,19 +711,17 @@ def main():
         else:
             active_dataloader = train_dataloader
         for step, batch in enumerate(active_dataloader):
-            # Branch: if iter % project_gap == 0 steps 
-            # 1. Random Sampling 1 sample
-            # x = Sample(batch)
-            
-            # 2. Loss & Gradient Calculation
-            # Loss = criterio(x, y)
-            # Loss.backward()
-            
-            # 3. Project Matrix Update
-            # optimizer.projecter.calculate_projections()
-            # Step calibraion(-1)
-            
-            # 4. Normal update
+            """ CUSTOM single-sample projection """
+            if args.enable_single_projection and step % args.update_proj_gap == 0:
+                # batch의 첫 샘플만 slice (정적 slicing은 그래프 유지)
+                x = {k: v[:1] for k, v in batch.items()}
+                outputs = model(**x)
+                loss = outputs.loss
+
+                accelerator.backward(loss)
+                optimizer.optimizer.reset_projection()
+                optimizer.zero_grad(set_to_none=True)
+            """ END OF CUSTOM single-sample projection """           
             
             
             outputs = model(**batch)

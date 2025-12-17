@@ -146,3 +146,43 @@ class AdamW(Optimizer):
                     p.add_(p, alpha=(-group["lr"] * group["weight_decay"]))
 
         return loss
+
+    @torch.no_grad()
+    def reset_projection(self):
+        """
+        only reset the projection matrices
+        """
+        
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                grad = p.grad
+                if grad.is_sparse:
+                    raise RuntimeError("Adam does not support sparse gradients, please consider SparseAdam instead")
+
+                state = self.state[p]
+                
+                if "step" not in state:
+                    state["step"] = 0
+                
+                if 'dim' not in group:
+                    group['dim'] = 2
+                    
+                # GaLore Projection
+                if "rank" in group:
+                    if "projector" not in state:
+                        if group['dim'] <=2:
+                            state["projector"] = GaLoreProjector(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
+                        else:
+                            state["projector"] = GaLoreProjectorTensor(group["rank"], update_proj_gap=group["update_proj_gap"], scale=group["scale"], proj_type=group["proj_type"])
+                    
+
+                    # re-calculate projection matrices
+                    projector = state["projector"]
+                    if grad.shape[0] >= grad.shape[1]:
+                        projector.ortho_matrix = projector.get_orthogonal_matrix(grad, projector.rank, type='right')
+                    else:
+                        projector.ortho_matrix = projector.get_orthogonal_matrix(grad, projector.rank, type='left')
+                    
+        return
