@@ -560,8 +560,8 @@ def main():
     eval_dataloader = DataLoader(eval_dataset, collate_fn=data_collator, batch_size=args.per_device_eval_batch_size)
 
     # >>> BEGIN: logging additions (paths)
-    train_log_path = os.path.join(args.output_dir or ".", f"train_step_metrics_acc{args.gradient_accumulation_steps}_batch{args.per_device_train_batch_size}.jsonl")
-    eval_log_path  = os.path.join(args.output_dir or ".", f"eval_epoch_metrics_acc{args.gradient_accumulation_steps}_batch{args.per_device_train_batch_size}.jsonl")
+    train_log_path = os.path.join(args.output_dir or ".", f"train_step_metrics_acc{args.gradient_accumulation_steps}_batch{args.per_device_train_batch_size}_T{args.update_proj_gap}.jsonl")
+    eval_log_path  = os.path.join(args.output_dir or ".", f"eval_epoch_metrics_acc{args.gradient_accumulation_steps}_batch{args.per_device_train_batch_size}_T{args.update_proj_gap}.jsonl")
     # >>> END: logging additions (paths)
 
     # Optimizer
