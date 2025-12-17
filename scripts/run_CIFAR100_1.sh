@@ -9,7 +9,7 @@ SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$SCRIPT_ROOT/run_CIFAR100.py"
 
 # configure these arrays to run experiments
-BATCH_SIZES=(8 16 32 64 128)
+BATCH_SIZES=(1)
 ACC_STEPS=(1)
 
 # other defaults (tweak as needed)
@@ -19,7 +19,7 @@ MODEL_NAME=${MODEL_NAME:-google/vit-base-patch16-224-in21k}
 USE_AMP=${USE_AMP:-false}
 GPU_NUM=${GPU_NUM:-1}
 
-OUT_ROOT="$SCRIPT_ROOT/exp_outputs"
+OUT_ROOT="$SCRIPT_ROOT/exp_outputs/CIFAR100_FT"
 mkdir -p "$OUT_ROOT"
 
 for BS in "${BATCH_SIZES[@]}"; do

@@ -1,3 +1,4 @@
 *.pt
 *.safetensors
-
+exp_outputs/
+__pycache__/

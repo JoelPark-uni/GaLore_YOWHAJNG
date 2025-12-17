@@ -311,29 +311,29 @@ def main():
     model = ViTForImageClassification.from_pretrained(args.model_name, num_labels=100)
 
     # optimizer and scheduler
-    # optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     # label layers for galore optimizer
     # target_modules_list = ["attn", "mlp"]
     # target_modules_list = ["q_proj", "v_proj"]
-    target_modules_list = ["attention", "dense"]
-    galore_params = []
-    for module_name, module in model.named_modules():
-        if not isinstance(module, nn.Linear):
-            continue
-        # print('checking module: ', module_name)
-        if not any(target_key in module_name for target_key in target_modules_list):
-            continue
+    # target_modules_list = ["attention", "dense"]
+    # galore_params = []
+    # for module_name, module in model.named_modules():
+    #     if not isinstance(module, nn.Linear):
+    #         continue
+    #     # print('checking module: ', module_name)
+    #     if not any(target_key in module_name for target_key in target_modules_list):
+    #         continue
 
-        print('enable GaLore for weights in module: ', module_name)
-        galore_params.append(module.weight)
+    #     print('enable GaLore for weights in module: ', module_name)
+    #     galore_params.append(module.weight)
 
-    id_galore_params = [id(p) for p in galore_params]
-    # make parameters without "rank" to another group
-    regular_params = [p for p in model.parameters() if id(p) not in id_galore_params]
-    # then call galore_adamw
-    param_groups = [{'params': regular_params}, 
-                    {'params': galore_params, 'rank': args.rank, 'update_proj_gap': args.update_proj_gap, 'scale': args.galore_scale, 'proj_type': "std"}]
-    optimizer = GaLoreAdamW(param_groups, lr=args.lr)
+    # id_galore_params = [id(p) for p in galore_params]
+    # # make parameters without "rank" to another group
+    # regular_params = [p for p in model.parameters() if id(p) not in id_galore_params]
+    # # then call galore_adamw
+    # param_groups = [{'params': regular_params}, 
+    #                 {'params': galore_params, 'rank': args.rank, 'update_proj_gap': args.update_proj_gap, 'scale': args.galore_scale, 'proj_type': "std"}]
+    # optimizer = GaLoreAdamW(param_groups, lr=args.lr)
     
 
     total_steps = args.epochs * len(train_loader)

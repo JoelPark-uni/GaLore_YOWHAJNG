@@ -9,7 +9,7 @@ SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$SCRIPT_ROOT/run_CIFAR100.py"
 
 # configure these arrays to run experiments
-BATCH_SIZES=(1 2 4)
+BATCH_SIZES=(4 8 16 32 64 128)
 ACC_STEPS=(1)
 
 # other defaults (tweak as needed)
